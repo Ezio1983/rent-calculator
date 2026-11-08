@@ -335,13 +335,13 @@
                     目標輸入方式
                     <select id="targetSource">
                         <option value="rate">年調整率</option>
-                        <option value="avg">平均月租</option>
+                        <option value="avg" selected>平均月租</option>
                         <option value="total">合約總額</option>
                     </select>
                 </label>
                 <label>
-                    <span id="targetValueLabel">年調整率（%）</span>
-                    <input id="targetValue" type="number" step="0.1" value="2" inputmode="decimal">
+                    <span id="targetValueLabel">平均月租（元）</span>
+                    <input id="targetValue" type="number" step="100" value="60000" inputmode="numeric">
                 </label>
                 <label>
                     月租取整
@@ -353,11 +353,22 @@
                 </label>
             </div>
             <p id="targetDerived" class="derived" aria-live="polite"></p>
-            <p class="muted">年調整率以新約第一年即調整、往後逐年複利計算。三項數字等值，只有選定的一項可以編輯。</p>
+            <p class="muted">先輸入想談的平均月租，下方立即比較不同租期對應的等值年調整率；也可切換年調整率或合約總額輸入。</p>
         </section>
 
+        <section class="panel" id="termChoicePanel">
+            <h2>③ 同一金額，不同租期怎麼算？</h2>
+            <p class="muted">以下以輸入的平均月租為準，列出各租期的合約總額與等值年調整率。點選租期後，下方可直接查看 A～D 分段議價方案。年調整率是租金換算的內部參考，不代表實際通膨率。</p>
+            <div class="tablewrap">
+                <table>
+                    <thead><tr><th>租期</th><th>平均月租</th><th>合約總額</th><th>等值年調整率</th><th>操作</th></tr></thead>
+                    <tbody id="termChoiceRows"></tbody>
+                </table>
+            </div>
+            <p id="termChoiceHint" class="muted" aria-live="polite"></p>
+        </section>
         <section class="panel">
-            <h2>③ 付款方式</h2>
+            <h2>④ 付款方式</h2>
             <div class="controls">
                 <label>
                     付款方式
@@ -392,7 +403,7 @@
         </section>
 
         <section class="panel">
-            <h2>④ 各年月租</h2>
+            <h2>⑤ 各年月租</h2>
             <div class="statusbar">
                 <span id="planStatus" class="pill"></span>
                 <button type="button" class="secondary" id="restore" hidden>還原</button>
@@ -402,7 +413,7 @@
         </section>
 
         <section class="panel">
-            <h2>⑤ 本方案結果</h2>
+            <h2>⑥ 本方案結果</h2>
             <div id="warnings" aria-live="polite"></div>
             <p id="targetInfo" class="muted"></p>
             <div class="stats">
@@ -453,7 +464,7 @@
             <p id="copyStatus" class="muted" aria-live="polite"></p>
         </section>
         <section class="panel">
-            <h2>⑥ 房客報價評估｜反推年調整率</h2>
+            <h2>⑦ 房客報價評估｜反推年調整率</h2>
             <p class="muted">輸入老闆娘提出的「全期固定月租」，立即比較相同報價在 1～7 年租期的隱含年複利率。以目前月租為基準，新約第一年即調整；數值是整份合約總額的等值年調整率，不代表每年實際漲租。</p>
             <div class="controls">
                 <label>
@@ -478,7 +489,7 @@
             <p class="muted">內部參考：1～3 年以 1.5%～2.5% 評估；4～7 年以 2%～3% 評估。低於下緣代表未達原先設定的參考範圍；高於上緣代表優於開價基準。這是內部判斷工具，不是對外揭露的底價或成交承諾。</p>
         </section>
         <section class="panel">
-            <h2>⑦ 1～7 年租期比較</h2>
+            <h2>⑧ 1～7 年租期比較</h2>
             <p class="muted">每格均以新約第一年立即調漲一次，往後每年按指定年調整率逐年複利計算。下表是把各年租金平均後的「等值固定月租」，不是每年實際支付的月租。</p>
             <h3 style="font-size:15px;margin:16px 0 10px">等值固定月租（元）</h3>
             <div class="tablewrap">
@@ -666,7 +677,7 @@
     };
 
     const state = {
-        source: 'rate',
+        source: 'avg',
         pinnedTotal: null,
         preset: 'A',
         modified: false,
@@ -731,6 +742,25 @@
         ].join('｜');
     }
 
+    function renderTermChoice(inp, T) {
+        const body = $('termChoiceRows');
+        const hint = $('termChoiceHint');
+        if (inp.errors.length || !(T > 0)) {
+            body.innerHTML = '<tr><td colspan="5">請先輸入有效的租金目標。</td></tr>';
+            hint.textContent = '';
+            return;
+        }
+        const avg = T / (12 * inp.n);
+        body.innerHTML = Array.from({length: 7}, (_, i) => {
+            const n = i + 1;
+            const total = avg * 12 * n;
+            const rate = RentCalc.solveRate(inp.base, total, n);
+            const selected = n === inp.n;
+            return `<tr${selected ? ' style="background:#eaf3ff;font-weight:700"' : ''}><td>${n} 年</td><td>${f(avg)} 元</td><td>${f(total)} 元</td><td>${rate == null ? '—' : pct(rate)}</td><td><button type="button" class="secondary" data-term="${n}" ${selected ? 'aria-current="true"' : ''}>${selected ? '已選擇' : '選擇'}</button></td></tr>`;
+        }).join('');
+        hint.textContent = '目前選擇 ' + inp.n + ' 年。選擇 4～7 年會自動開啟 A～D 分段方案；1～3 年則使用固定月租。';
+    }
+
     function renderPresetButtons(plans, n, mode) {
         for (const key of RentCalc.KEYS) {
             const btn = $(key === 'D' ? 'brother' : 'brother' + key);
@@ -789,6 +819,7 @@
 
         const T = inp.errors.length ? NaN : anchorTotalOf(inp);
         renderDerived(inp, T);
+        renderTermChoice(inp, T);
         const anchor = $('anchor').value,
             n = inp.n;
         const plans = !inp.errors.length && n >= 4 ? RentCalc.presetPlans(T, n, anchor, inp.unit) : null;
@@ -1010,6 +1041,27 @@
         } catch (e) {
             $('copyStatus').textContent = '瀏覽器不允許直接複製，請使用列印／儲存 PDF。';
         }
+    });
+    $('termChoiceRows').addEventListener('click', e => {
+        const button = e.target.closest('button[data-term]');
+        if (!button) return;
+        const n = Number(button.dataset.term);
+        const previousYears = Number($('years').value);
+        $('years').value = String(n);
+        $('mode').value = n >= 4 ? 'preset' : 'fixed';
+        state.modified = false;
+        state.pinnedTotal = null;
+        // 跨租期時保留平均月租，不保留原租期的合約總額。
+        const inp = readInputs();
+        if (inp.source === 'total') {
+            const avg = inp.value / (12 * previousYears);
+            $('targetValue').value = String(Math.round(avg * 12 * n));
+        } else if (inp.source === 'rate') {
+            // 年調整率輸入模式沿用原本的利率，重新計算新租期。
+        }
+        state.lastTermYears = n;
+        update();
+        evaluateOffer();
     });
     $('offer').addEventListener('input', evaluateOffer);
     update();
