@@ -998,3 +998,23 @@
         update();
     }));
     $('restore').addEventListener('click', () => {
+        state.modified = false;
+        update();
+    });
+    $('copy').addEventListener('click', async () => {
+        if (!state.summary)
+            return;
+        try {
+            await navigator.clipboard.writeText(state.summary);
+            $('copyStatus').textContent = '已複製方案摘要';
+        } catch (e) {
+            $('copyStatus').textContent = '瀏覽器不允許直接複製，請使用列印／儲存 PDF。';
+        }
+    });
+    $('offer').addEventListener('input', evaluateOffer);
+    update();
+    compare();
+    evaluateOffer();
+    </script>
+</body>
+</html>
