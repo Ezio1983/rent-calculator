@@ -1,19 +1,1000 @@
-<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>租金方案試算｜家庭討論版</title><style>:root{font-family:-apple-system,BlinkMacSystemFont,'Noto Sans TC',sans-serif;color:#192435;background:#f5f7fa}*{box-sizing:border-box}body{margin:0}main{max-width:1000px;margin:auto;padding:26px 16px 60px}h1{font-size:27px;margin:0 0 8px}p{color:#596577;line-height:1.6}.panel{background:white;border:1px solid #e0e6ee;border-radius:16px;padding:20px;margin:18px 0;box-shadow:0 3px 15px #132c4508}h2{font-size:18px;margin:0 0 16px}.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:14px}label{font-size:13px;font-weight:650;color:#4a586c;display:block}input,select{width:100%;font:inherit;padding:10px;margin-top:7px;border:1px solid #cdd7e3;border-radius:9px;background:white}input:focus,select:focus{outline:2px solid #9dbde5}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}.stat{background:#f2f6fb;padding:15px;border-radius:12px}.stat span{font-size:12px;color:#637086}.stat strong{display:block;font-size:22px;margin-top:7px}.tablewrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:14px;white-space:nowrap}th,td{padding:11px 12px;border-bottom:1px solid #e7ebf0;text-align:right}th:first-child,td:first-child{text-align:left}th{background:#f3f6fa;color:#44556b}button{border:0;background:#245ea5;color:white;padding:11px 15px;border-radius:9px;cursor:pointer;font-weight:650}button.secondary{background:#eaf0f8;color:#244a7a}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.muted{font-size:12px;color:#6a7688}.pill{display:inline-block;padding:5px 9px;background:#eaf3ef;border-radius:8px;color:#22684c;font-size:12px}#steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:9px}.step label{font-size:12px}.step input{margin-top:5px}footer{font-size:12px;color:#6b7788;line-height:1.7}@media print{body{background:white}.panel{box-shadow:none;break-inside:avoid}.actions{display:none}main{padding:0}}</style></head><body><main><h1>租金方案試算</h1><p>家庭討論版｜比較 1～7 年租約、年調整率、付款方式與指定總額。所有數字均為稅前名目租金。</p><section class="panel"><h2>① 基本條件</h2><div class="controls"><label>目前月租（元）<input id="base" type="number" min="1" step="100" value="55000"></label><label>租期（年）<select id="years"><option value="1">1 年</option><option value="2">2 年</option><option value="3">3 年</option><option value="4">4 年</option><option value="5">5 年</option><option value="6">6 年</option><option value="7" selected>7 年</option></select></label><label>年調整率（%）<input id="rate" type="number" min="0" max="30" step="0.1" value="2"></label><label>付款方式<select id="mode"><option value="compound">逐年複利</option><option value="fixed">固定月租（等總額）</option><option value="deferred">首年優惠、後續等額</option><option value="custom">自訂逐年月租</option></select></label></div><p class="muted">複利基準：新約第一年即調漲一次，往後每年再調整；首年優惠屬付款安排，不改變總額基準。固定／首年優惠使用相同總額，僅改變收款時點。</p></section><section class="panel"><h2>② 指定總額與自訂階梯</h2><div class="controls"><label>目標合約總租金（元；選填，留空採複利基準）<input id="target" type="number" min="0" step="1000" placeholder="例如 5004000"></label><label id="firstWrap" style="display:none">首年優惠月租（僅適用「首年優惠、後續等額」）<input id="first" type="number" min="0" step="100" value="55000"></label></div><p class="muted">指定總額時，固定方案會平均分攤；首年優惠方案會將扣除第一年租金後的總額平均分攤至剩餘年度。下方逐年月租會同步顯示目前付款方式的計算值；手動修改任一年即切換為自訂階梯。自訂模式下不會自動覆蓋你的數字。若希望將目標總額平均分攤，可按「依目標總額平均分配」，系統會切換為固定月租並精確處理尾差。弟弟的 A～D 方案以 A 的總額為基準，B／C／D 在七年約分別固定讓價 30,000／96,000／120,000 元；4～6 年按租期比例縮放差額。各方案保留原始每階段漲幅與末年是否調漲的規則。4～6 年時 A 與 B、C 與 D 的數值分別相同（差別只在第七年）。套用後仍可自行修改各年月租。</p><div class="actions" style="margin:12px 0"><button class="secondary" id="applyTarget" type="button">依目標總額平均分配</button></div><p id="targetHint" class="muted" aria-live="polite"></p><p id="deferredPreview" class="muted" style="display:none" aria-live="polite"></p><div id="steps"></div><div class="actions"><button class="secondary" id="brotherA">套用方案 A</button><button class="secondary" id="brotherB">套用方案 B</button><button class="secondary" id="brotherC">套用方案 C</button><button class="secondary" id="brother">套用方案 D</button><button class="secondary" id="reset">回到 2% 逐年複利</button></div><p id="presetInfo" class="muted" aria-live="polite"></p></section><section class="panel"><h2>③ 本方案結果</h2><div class="stats"><div class="stat"><span>租期總租金</span><strong id="total">—</strong></div><div class="stat"><span>平均每月租金</span><strong id="average">—</strong></div><div class="stat"><span>相較全期固定原租金</span><strong id="increase">—</strong></div><div class="stat"><span>與指定總額差額</span><strong id="difference">—</strong></div></div><div class="tablewrap" style="margin-top:18px"><table><thead><tr><th>年度</th><th>月租（元）</th><th>全年租金（元）</th><th>較現行月租</th></tr></thead><tbody id="rows"></tbody></table></div><div class="actions"><button id="copy">複製方案摘要</button><button class="secondary" onclick="window.print()">列印／儲存 PDF</button></div><p id="copyStatus" class="muted" aria-live="polite"></p></section><section class="panel"><h2>④ 房客報價評估｜反推年調整率</h2><p class="muted">輸入老闆娘提出的「全期固定月租」，立即比較相同報價在 1～7 年租期的隱含年複利率。以目前月租為基準，新約第一年即調整；數值是整份合約總額的等值年調整率，不代表每年實際漲租。</p><div class="controls"><label>房客提出的固定月租（元）<input id="offer" type="number" min="1" step="100" value="57000" inputmode="numeric"></label></div><p id="offerHint" class="muted" aria-live="polite"></p><div class="tablewrap"><table><thead><tr><th>租期</th><th>合約總額</th><th>隱含年調整率</th><th>內部參考</th></tr></thead><tbody id="offerRows"></tbody></table></div><p class="muted">內部參考：1～3 年以 1.5%～2.5% 評估；4～7 年以 2%～3% 評估。低於下緣代表未達原先設定的參考範圍；高於上緣代表優於開價基準。這是內部判斷工具，不是對外揭露的底價或成交承諾。</p></section><section class="panel"><h2>⑤ 1～7 年租期比較</h2><p class="muted">每格均以新約第一年立即調漲一次，往後每年按指定年調整率逐年複利計算。下表是把各年租金平均後的「等值固定月租」，不是每年實際支付的月租。</p><h3 style="font-size:15px;margin:16px 0 10px">等值固定月租（元）</h3><div class="tablewrap"><table><thead><tr><th>租期</th><th>0%</th><th>1%</th><th>2%</th><th>2.5%</th><th>3%</th><th>4%</th><th>5%</th></tr></thead><tbody id="comparison"></tbody></table></div><h3 style="font-size:15px;margin:22px 0 10px">全期總租金（元）</h3><div class="tablewrap"><table><thead><tr><th>租期</th><th>0%</th><th>1%</th><th>2%</th><th>2.5%</th><th>3%</th><th>4%</th><th>5%</th></tr></thead><tbody id="comparisonTotal"></tbody></table></div><p class="muted">兩張比較表不受上方指定總額與付款方式影響。1 年約也會在新約開始時調漲一次，因此不同調整率的結果不同。</p></section><footer>注意：同總額的不同付款方式不代表相同現值，前低後高會增加提前退租時的未收租金風險。本工具不構成市場估價或法律意見；正式簽約前應確認租金尾差、稅務、提前終止及房屋使用條款。逐年月租顯示到整數元，最後一個月自動調整尾差，使總額精確符合計算目標。</footer></main><script>
-const $=id=>document.getElementById(id),f=n=>Math.round(n).toLocaleString('zh-TW'),val=id=>Number($(id).value)||0;
-const compound=(base,rate,n)=>Array.from({length:n},(_,i)=>base*Math.pow(1+rate/100,i+1));
-let lastRows=[],lastTotal=0;
-let activePreset=null;
-const brotherPlans={A:[57500,57500,60000,60000,62500,62500,65000],B:[57500,57500,60000,60000,62500,62500,62500],C:[57000,57000,59000,59000,61000,61000,63000],D:[57000,57000,59000,59000,61000,61000,61000]};
-const presetDiscount7={A:0,B:30000,C:96000,D:120000};
-function presetTotal(key,n,core){return Math.round(core-presetDiscount7[key]*n/7)}
-function presetValues(key,n,core){const base=brotherPlans[key].slice(0,n),total=presetTotal(key,n,core);const baseline=base.reduce((sum,v)=>sum+v,0),shift=(total/12-baseline)/n;return base.map(v=>v+shift)}
-function refreshPresetButtons(){$('reset').textContent=`回到 ${$('rate').value||0}% 逐年複利`;const n=val('years'),goal=val('target'),benchmark=compound(val('base'),val('rate'),n).reduce((sum,v)=>sum+v*12,0),core=goal>0?goal:benchmark;for(const [key,id] of Object.entries({A:'brotherA',B:'brotherB',C:'brotherC',D:'brother'})){const btn=$(id);btn.textContent=`方案 ${key}｜${f(presetTotal(key,n,core))} 元`;btn.disabled=n<4;btn.title=n<4?'分段快速套用適用於四年以上租期':`A 為基準，${key} 方案依固定讓價差額與原分段規則計算`;} $('presetInfo').textContent=n<4?'目前為 1～3 年租期，建議採固定月租；切換為 4～7 年即可套用分段方案。':`目前選擇 ${n} 年：方案 A 以${goal>0?'目標合約總租金':'複利基準總額'}為基準；B／C／D 分別以七年差額 30,000／96,000／120,000 元按租期比例換算讓價。保留原本每階段增加 2,500 或 2,000 元及末年調整規則；手動修改即轉為自訂。`;}
-function setBrotherPlan(key){const n=val('years');if(n<4||n>7)return;activePreset=key;$('mode').value='custom';update();}
-function renderSteps(vals){const n=val('years'), old=[...document.querySelectorAll('.step input')].map(e=>Number(e.value));$('steps').innerHTML=Array.from({length:n},(_,i)=>`<div class="step"><label>第 ${i+1} 年月租（元）<input type="number" min="0" step="1" value="${Math.round(vals?.[i]??old[i]??val('base'))}"></label></div>`).join('');document.querySelectorAll('.step input').forEach(e=>e.addEventListener('input',()=>{activePreset=null;if($('mode').value!=='custom')$('mode').value='custom';update()}))}
-function distribute(yearly,target){const n=yearly.length;let months=[];for(let i=0;i<n;i++)for(let m=0;m<12;m++)months.push(Math.round(yearly[i]));const sum=months.reduce((a,b)=>a+b,0);months[months.length-1]+=Math.round(target)-sum;return months}
-function update(){const b=val('base'),n=val('years'),r=val('rate'),mode=$('mode').value,goal=val('target');const c=compound(b,r,n),benchmark=c.reduce((a,v)=>a+v*12,0),target=goal>0?goal:benchmark;let yearly;if(mode==='compound'){yearly=c;if(goal>0){const k=target/benchmark;yearly=c.map(v=>v*k)}}else if(mode==='fixed'){yearly=Array(n).fill(target/(12*n))}else if(mode==='deferred'){const first=val('first');yearly=n===1?[target/12]:[first,...Array(n-1).fill((target/12-first)/(n-1))]}else if(activePreset){yearly=presetValues(activePreset,n,target)}else{yearly=[...document.querySelectorAll('.step input')].map(e=>Number(e.value)||0)}$('firstWrap').style.display=mode==='deferred'?'block':'none';const preview=$('deferredPreview');if(mode==='deferred'){preview.style.display='block';preview.textContent=n>1?`首年每月 ${f(yearly[0])} 元；第 2～${n} 年每月約 ${f(yearly[1])} 元。年度明細請見下方「③ 本方案結果」。`:`一年租約沒有後續年度，月租依總額計算為 ${f(yearly[0])} 元。`;}else{preview.style.display='none';}const hint=$('targetHint');if(goal>0){hint.textContent=activePreset?`已套用方案 ${activePreset}：以目標總額 ${f(target)} 元作為 A 的基準，固定讓價後本方案總額 ${f(presetTotal(activePreset,n,target))} 元。`:mode==='custom'&&!activePreset?`目前為自訂逐年月租：目標 ${f(goal)} 元僅供比較，不會自動更改下方月租。按「依目標總額平均分配」可切換為固定月租。`:`已套用目標合約總租金 ${f(goal)} 元，依目前付款方式分配。`;}else{hint.textContent=activePreset?`未指定目標總額；以複利基準 ${f(target)} 元作為 A，方案 ${activePreset} 固定讓價後為 ${f(presetTotal(activePreset,n,target))} 元。`:'尚未指定目標總額；固定、複利及首年優惠模式採年調整率計算的總額。';}const exact=mode==='custom'&&!activePreset?yearly.reduce((a,v)=>a+v*12,0):activePreset?presetTotal(activePreset,n,target):target;const months=mode==='custom'&&!activePreset?yearly.flatMap(v=>Array(12).fill(Math.round(v))):distribute(yearly,exact);lastTotal=months.reduce((a,b)=>a+b,0);lastRows=Array.from({length:n},(_,i)=>({year:i+1,monthly:months[i*12],annual:months.slice(i*12,i*12+12).reduce((a,b)=>a+b,0)}));if(mode!=='custom'||activePreset){const inputs=[...document.querySelectorAll('.step input')];if(inputs.length!==n){renderSteps(yearly)}else{inputs.forEach((input,i)=>{input.value=String(Math.round(yearly[i]))})}}$('total').textContent=f(lastTotal)+' 元';$('average').textContent=f(lastTotal/(n*12))+' 元';$('increase').textContent=(lastTotal-b*n*12>=0?'+':'')+f(lastTotal-b*n*12)+' 元';$('difference').textContent=goal>0?(lastTotal-goal>=0?'+':'')+f(lastTotal-goal)+' 元':'未指定';$('rows').innerHTML=lastRows.map(x=>`<tr><td>第 ${x.year} 年</td><td>${f(x.monthly)}${x.annual!==x.monthly*12?' *':''}</td><td>${f(x.annual)}</td><td>${((x.annual/12/b-1)*100).toFixed(2)}%</td></tr>`).join('');$('copyStatus').textContent=lastRows.some(x=>x.annual!==x.monthly*12)?'* 最後一個月含整數尾差調整。':'';}
-function impliedRate(base,monthly,n){if(!(base>0&&monthly>0))return null;const desired=monthly*n;let low=-99.999,high=100;for(let i=0;i<90;i++){const mid=(low+high)/2;const sum=Array.from({length:n},(_,j)=>base*Math.pow(1+mid/100,j+1)).reduce((a,b)=>a+b,0);if(sum<desired)low=mid;else high=mid;}return (low+high)/2;}
-function evaluateOffer(){const base=val('base'),offer=val('offer'),body=$('offerRows'),hint=$('offerHint');if(base<=0||offer<=0){body.innerHTML='<tr><td colspan="4">請輸入大於 0 元的目前月租及房客報價。</td></tr>';hint.textContent='';return;}hint.textContent=`房客固定月租 ${f(offer)} 元；相較目前月租 ${offer>=base?'+':''}${f(offer-base)} 元（${((offer/base-1)*100).toFixed(2)}%）。下表為不同租期的等值年調整率。`;body.innerHTML=Array.from({length:7},(_,i)=>{const n=i+1,r=impliedRate(base,offer,n),min=n<=3?1.5:2,max=n<=3?2.5:3,status=r<min-1e-7?'低於內部參考下緣':r>max+1e-7?'高於開價基準':'落在內部參考範圍';return `<tr${n===val('years')?' style="background:#eaf3ff;font-weight:700"':''}><td>${n} 年${n===val('years')?'（目前選擇）':''}</td><td>${f(offer*12*n)} 元</td><td>${r.toFixed(3)}%</td><td>${status}</td></tr>`;}).join('');}
-function compare(){const b=val('base'),rates=[0,1,2,2.5,3,4,5];const data=Array.from({length:7},(_,i)=>{const n=i+1;return {n,totals:rates.map(r=>compound(b,r,n).reduce((sum,v)=>sum+v*12,0))}});$('comparison').innerHTML=data.map(({n,totals})=>`<tr><td>${n} 年</td>${totals.map(t=>`<td>${f(t/(n*12))}</td>`).join('')}</tr>`).join('');$('comparisonTotal').innerHTML=data.map(({n,totals})=>`<tr><td>${n} 年</td>${totals.map(t=>`<td>${f(t)}</td>`).join('')}</tr>`).join('')}
-$('applyTarget').addEventListener('click',()=>{if(val('target')<=0){$('targetHint').textContent='請先輸入大於 0 元的目標合約總租金，再按平均分配。';$('target').focus();return;}activePreset=null;$('mode').value='fixed';update();});['base','rate','target','first'].forEach(id=>$(id).addEventListener('input',()=>{update();refreshPresetButtons();if(id==='base'){compare();evaluateOffer()}}));$('years').addEventListener('change',()=>{activePreset=null;renderSteps();refreshPresetButtons();update();evaluateOffer()});$('mode').addEventListener('change',()=>{activePreset=null;update()});Object.entries({A:'brotherA',B:'brotherB',C:'brotherC',D:'brother'}).forEach(([key,id])=>$(id).addEventListener('click',()=>setBrotherPlan(key)));$('reset').addEventListener('click',()=>{activePreset=null;$('mode').value='compound';refreshPresetButtons();update()});$('copy').addEventListener('click',async()=>{const s=`租金方案：${val('years')} 年｜總額 ${f(lastTotal)} 元｜平均月租 ${f(lastTotal/(val('years')*12))} 元\n`+lastRows.map(x=>`第 ${x.year} 年：月租約 ${f(x.monthly)} 元，全年 ${f(x.annual)} 元`).join('\n');try{await navigator.clipboard.writeText(s);$('copyStatus').textContent='已複製方案摘要'}catch(e){$('copyStatus').textContent='瀏覽器不允許直接複製，請使用列印／儲存 PDF。'}});$('offer').addEventListener('input',evaluateOffer);renderSteps();refreshPresetButtons();compare();update();evaluateOffer();
-</script></body></html>
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>租金方案試算｜家庭討論版</title>
+    <style>
+    :root {
+        font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans TC', sans-serif;
+        color: #192435;
+        background:#f5f7fa
+    }
+
+    * {
+        box-sizing:border-box
+    }
+
+    body {
+        margin:0
+    }
+
+    main {
+        max-width: 1000px;
+        margin: auto;
+        padding:26px 16px 60px
+    }
+
+    h1 {
+        font-size: 27px;
+        margin:0 0 8px
+    }
+
+    p {
+        color: #596577;
+        line-height:1.6
+    }
+
+    .panel {
+        background: white;
+        border: 1px solid #e0e6ee;
+        border-radius: 16px;
+        padding: 20px;
+        margin: 18px 0;
+        box-shadow:0 3px 15px #132c4508
+    }
+
+    h2 {
+        font-size: 18px;
+        margin:0 0 16px
+    }
+
+    .controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+        gap:14px
+    }
+
+    label {
+        font-size: 13px;
+        font-weight: 650;
+        color: #4a586c;
+        display:block
+    }
+
+    input, select {
+        width: 100%;
+        font: inherit;
+        padding: 10px;
+        margin-top: 7px;
+        border: 1px solid #cdd7e3;
+        border-radius: 9px;
+        background:white
+    }
+
+    input:focus, select:focus {
+        outline:2px solid #9dbde5
+    }
+
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap:12px
+    }
+
+    .stat {
+        background: #f2f6fb;
+        padding: 15px;
+        border-radius:12px
+    }
+
+    .stat span {
+        font-size: 12px;
+        color:#637086
+    }
+
+    .stat strong {
+        display: block;
+        font-size: 22px;
+        margin-top:7px
+    }
+
+    .tablewrap {
+        overflow:auto
+    }
+
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 14px;
+        white-space:nowrap
+    }
+
+    th, td {
+        padding: 11px 12px;
+        border-bottom: 1px solid #e7ebf0;
+        text-align:right
+    }
+
+    th:first-child, td:first-child {
+        text-align:left
+    }
+
+    th {
+        background: #f3f6fa;
+        color:#44556b
+    }
+
+    button {
+        border: 0;
+        background: #245ea5;
+        color: white;
+        padding: 11px 15px;
+        border-radius: 9px;
+        cursor: pointer;
+        font-weight:650
+    }
+
+    button.secondary {
+        background: #eaf0f8;
+        color:#244a7a
+    }
+
+    .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top:16px
+    }
+
+    .muted {
+        font-size: 12px;
+        color:#6a7688
+    }
+
+    .pill {
+        display: inline-block;
+        padding: 5px 9px;
+        background: #eaf3ef;
+        border-radius: 8px;
+        color: #22684c;
+        font-size:12px
+    }
+
+    #steps {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+        gap:9px
+    }
+
+    .step label {
+        font-size:12px
+    }
+
+    .step input {
+        margin-top:5px
+    }
+
+    footer {
+        font-size: 12px;
+        color: #6b7788;
+        line-height:1.7
+    }
+
+    @media print {
+        body {
+            background:white
+        }
+
+        .panel {
+            box-shadow: none;
+            break-inside:avoid
+        }
+
+        .actions {
+            display:none
+        }
+
+        main {
+            padding:0
+        }
+    }
+
+    [hidden] {
+        display:none !important
+    }
+
+    .derived {
+        margin: 14px 0 0;
+        padding: 12px 14px;
+        background: #f2f6fb;
+        border-radius: 10px;
+        color: #2d3d52;
+        font-size:14px
+    }
+
+    .derived b {
+        color:#192435
+    }
+
+    .plans {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+        margin-top:16px
+    }
+
+    .plan {
+        background: #f4f7fb;
+        color: #22344d;
+        border: 2px solid transparent;
+        text-align: left;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 12px 14px;
+        font-weight:500
+    }
+
+    .plan b {
+        font-size:15px
+    }
+
+    .plan .avg {
+        font-size: 19px;
+        font-weight: 700;
+        color:#192435
+    }
+
+    .plan small {
+        color: #637086
+    }
+
+    .plan[aria-pressed="true"] {
+        border-color: #245ea5;
+        background:#eaf2fc
+    }
+
+    .plan:disabled {
+        opacity: .55;
+        cursor:not-allowed
+    }
+
+    button:focus-visible {
+        outline: 3px solid #9dbde5;
+        outline-offset:2px
+    }
+
+    .statusbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom:12px
+    }
+
+    .pill.modified {
+        background: #fff3df;
+        color:#8a5a00
+    }
+
+    #warnings p {
+        margin: 0 0 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size:13px
+    }
+
+    #warnings .info {
+        background: #fff7e8;
+        color:#7a5200
+    }
+
+    #warnings .block {
+        background: #fdeceb;
+        color: #9b2c22;
+        font-weight:650
+    }
+
+    .stat strong.neg {
+        color: #9b2c22
+    }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>租金方案試算</h1>
+        <p>家庭討論版｜先設定租金目標，再選擇付款方式。所有數字均為稅前名目租金。</p>
+
+        <section class="panel">
+            <h2>① 基本條件</h2>
+            <div class="controls">
+                <label>
+                    目前月租（元）
+                    <input id="base" type="number" min="1" step="100" value="55000" inputmode="numeric">
+                </label>
+                <label>
+                    租期（年）
+                    <select id="years">
+                        <option value="1">1 年</option>
+                        <option value="2">2 年</option>
+                        <option value="3">3 年</option>
+                        <option value="4">4 年</option>
+                        <option value="5">5 年</option>
+                        <option value="6">6 年</option>
+                        <option value="7" selected>7 年</option>
+                    </select>
+                </label>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>② 租金目標</h2>
+            <div class="controls">
+                <label>
+                    目標輸入方式
+                    <select id="targetSource">
+                        <option value="rate">年調整率</option>
+                        <option value="avg">平均月租</option>
+                        <option value="total">合約總額</option>
+                    </select>
+                </label>
+                <label>
+                    <span id="targetValueLabel">年調整率（%）</span>
+                    <input id="targetValue" type="number" step="0.1" value="2" inputmode="decimal">
+                </label>
+                <label>
+                    月租取整
+                    <select id="roundUnit">
+                        <option value="1">1 元</option>
+                        <option value="100" selected>100 元</option>
+                        <option value="500">500 元</option>
+                    </select>
+                </label>
+            </div>
+            <p id="targetDerived" class="derived" aria-live="polite"></p>
+            <p class="muted">年調整率以新約第一年即調整、往後逐年複利計算。三項數字等值，只有選定的一項可以編輯。</p>
+        </section>
+
+        <section class="panel">
+            <h2>③ 付款方式</h2>
+            <div class="controls">
+                <label>
+                    付款方式
+                    <select id="mode">
+                        <option value="compound">逐年複利</option>
+                        <option value="fixed">全期固定月租</option>
+                        <option value="deferred">首年優惠、後續等額</option>
+                        <option value="preset">議價方案 A～D</option>
+                    </select>
+                </label>
+                <label id="firstWrap" hidden>
+                    首年月租（元）
+                    <input id="first" type="number" min="0" step="100" value="55000" inputmode="numeric">
+                </label>
+                <label id="anchorWrap" hidden>
+                    目標代表
+                    <select id="anchor">
+                        <option value="A">開價（方案 A）</option>
+                        <option value="D">底價（方案 D）</option>
+                    </select>
+                </label>
+            </div>
+            <div id="presetWrap" hidden>
+                <div class="plans" role="group" aria-label="議價方案">
+                    <button type="button" class="plan" id="brotherA" data-key="A"></button>
+                    <button type="button" class="plan" id="brotherB" data-key="B"></button>
+                    <button type="button" class="plan" id="brotherC" data-key="C"></button>
+                    <button type="button" class="plan" id="brother" data-key="D"></button>
+                </div>
+                <p class="muted">B、C、D 以七年約讓價 30,000／96,000／120,000 元為目標，4～6 年按「租期 ÷ 7」縮放。各方案保留原有階梯，整體平移到目標；選底價時四個方案一律進位，確保 D 不低於底價。</p>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>④ 各年月租</h2>
+            <div class="statusbar">
+                <span id="planStatus" class="pill"></span>
+                <button type="button" class="secondary" id="restore" hidden>還原</button>
+            </div>
+            <div id="steps"></div>
+            <p class="muted">可直接修改任一年度；修改後其他年度不會自動調整，差額顯示在下方。</p>
+        </section>
+
+        <section class="panel">
+            <h2>⑤ 本方案結果</h2>
+            <div id="warnings" aria-live="polite"></div>
+            <p id="targetInfo" class="muted"></p>
+            <div class="stats">
+                <div class="stat">
+                    <span>實際合約總額</span>
+                    <strong id="total">—</strong>
+                </div>
+                <div class="stat">
+                    <span>實際平均月租</span>
+                    <strong id="average">—</strong>
+                </div>
+                <div class="stat">
+                    <span>等值年調整率</span>
+                    <strong id="actualRate">—</strong>
+                </div>
+                <div class="stat">
+                    <span id="differenceLabel">與目標差額</span>
+                    <strong id="difference">—</strong>
+                </div>
+            </div>
+            <div class="stats" id="discountStats" hidden style="margin-top:12px">
+                <div class="stat">
+                    <span>相對 A 目標讓價</span>
+                    <strong id="discountTarget">—</strong>
+                </div>
+                <div class="stat">
+                    <span>相對 A 實際讓價</span>
+                    <strong id="discountActual">—</strong>
+                </div>
+            </div>
+            <div class="tablewrap" style="margin-top:18px">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>年度</th>
+                            <th>月租（元）</th>
+                            <th>全年租金（元）</th>
+                            <th>較現行月租</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rows"></tbody>
+                </table>
+            </div>
+            <div class="actions">
+                <button id="copy" type="button">複製方案摘要</button>
+                <button class="secondary" type="button" onclick="window.print()">列印／儲存 PDF</button>
+            </div>
+            <p id="copyStatus" class="muted" aria-live="polite"></p>
+        </section>
+        <section class="panel">
+            <h2>⑥ 房客報價評估｜反推年調整率</h2>
+            <p class="muted">輸入老闆娘提出的「全期固定月租」，立即比較相同報價在 1～7 年租期的隱含年複利率。以目前月租為基準，新約第一年即調整；數值是整份合約總額的等值年調整率，不代表每年實際漲租。</p>
+            <div class="controls">
+                <label>
+                    房客提出的固定月租（元）
+                    <input id="offer" type="number" min="1" step="100" value="57000" inputmode="numeric">
+                </label>
+            </div>
+            <p id="offerHint" class="muted" aria-live="polite"></p>
+            <div class="tablewrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>租期</th>
+                            <th>合約總額</th>
+                            <th>隱含年調整率</th>
+                            <th>內部參考</th>
+                        </tr>
+                    </thead>
+                    <tbody id="offerRows"></tbody>
+                </table>
+            </div>
+            <p class="muted">內部參考：1～3 年以 1.5%～2.5% 評估；4～7 年以 2%～3% 評估。低於下緣代表未達原先設定的參考範圍；高於上緣代表優於開價基準。這是內部判斷工具，不是對外揭露的底價或成交承諾。</p>
+        </section>
+        <section class="panel">
+            <h2>⑦ 1～7 年租期比較</h2>
+            <p class="muted">每格均以新約第一年立即調漲一次，往後每年按指定年調整率逐年複利計算。下表是把各年租金平均後的「等值固定月租」，不是每年實際支付的月租。</p>
+            <h3 style="font-size:15px;margin:16px 0 10px">等值固定月租（元）</h3>
+            <div class="tablewrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>租期</th>
+                            <th>0%</th>
+                            <th>1%</th>
+                            <th>2%</th>
+                            <th>2.5%</th>
+                            <th>3%</th>
+                            <th>4%</th>
+                            <th>5%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparison"></tbody>
+                </table>
+            </div>
+            <h3 style="font-size:15px;margin:22px 0 10px">全期總租金（元）</h3>
+            <div class="tablewrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>租期</th>
+                            <th>0%</th>
+                            <th>1%</th>
+                            <th>2%</th>
+                            <th>2.5%</th>
+                            <th>3%</th>
+                            <th>4%</th>
+                            <th>5%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparisonTotal"></tbody>
+                </table>
+            </div>
+            <p class="muted">兩張比較表不受上方租金目標與付款方式影響。1 年約也會在新約開始時調漲一次，因此不同調整率的結果不同。</p>
+        </section>
+        <footer>注意：同總額的不同付款方式不代表相同現值，前低後高會增加提前退租時的未收租金風險。本工具不構成市場估價或法律意見；正式簽約前應確認稅務、提前終止及房屋使用條款。月租依選定單位取整，同一年內每月金額相同，合約總額以取整後的月租計算。</footer>
+    </main>
+    <script>
+    // ===== 計算層：純函式，不讀寫畫面 =====
+    const RentCalc = (() => {
+        const SHAPES = {
+            A: [57500, 57500, 60000, 60000, 62500, 62500, 65000],
+            B: [57500, 57500, 60000, 60000, 62500, 62500, 62500],
+            C: [57000, 57000, 59000, 59000, 61000, 61000, 63000],
+            D: [57000, 57000, 59000, 59000, 61000, 61000, 61000],
+        };
+        const DISCOUNT7 = {
+            A: 0,
+            B: 30000,
+            C: 96000,
+            D: 120000
+        };
+        const KEYS = ['A', 'B', 'C', 'D'];
+        const discount = (key, n) => (DISCOUNT7[key] * n) / 7;
+        const roundTo = (x, u) => Math.round(x / u) * u;
+        const ceilTo = (x, u) => Math.ceil(x / u - 1e-9) * u;
+        const sum = a => a.reduce((s, v) => s + v, 0);
+        const totalOf = monthly => sum(monthly) * 12;
+
+        // 新約第一年即調整，往後逐年複利
+        const compound = (base, rate, n) => Array.from({
+            length: n
+        }, (_, i) => base * Math.pow(1 + rate / 100, i + 1));
+        const compoundTotal = (base, rate, n) => sum(compound(base, rate, n)) * 12;
+
+        // 與 V1 相同的反推方式（以固定月租求等值年調整率）
+        function impliedRateMonthly(base, monthly, n) {
+            if (!(base > 0 && monthly > 0))
+                return null;
+            const desired = monthly * n;
+            let low = -99.999,
+                high = 100;
+            for (let i = 0; i < 90; i++) {
+                const mid = (low + high) / 2;
+                const s = sum(compound(base, mid, n));
+                if (s < desired)
+                    low = mid;
+                else
+                    high = mid;
+            }
+            return (low + high) / 2;
+        }
+        const solveRate = (base, total, n) => impliedRateMonthly(base, total / (12 * n), n);
+
+        function targetTotal(source, value, base, n) {
+            if (source === 'rate')
+                return compoundTotal(base, value, n);
+            if (source === 'avg')
+                return value * 12 * n;
+            return value;
+        }
+
+        // A～D：保留原始階梯形狀，各方案依自己的目標整體平移；平移量取整（底價時一律進位）
+        function presetPlans(anchorTotal, n, anchor, unit) {
+            if (n < 4 || n > 7)
+                return null;
+            const core = anchor === 'D' ? anchorTotal + discount('D', n) : anchorTotal;
+            const out = {};
+            for (const key of KEYS) {
+                const shape = SHAPES[key].slice(0, n);
+                const target = core - discount(key, n);
+                const shift = (target / 12 - sum(shape)) / n;
+                const r = anchor === 'D' ? ceilTo(shift, unit) : roundTo(shift, unit);
+                const monthly = shape.map(v => v + r);
+                out[key] = {
+                    key,
+                    target,
+                    monthly,
+                    total: totalOf(monthly)
+                };
+            }
+            // 保險：理論上不會發生（所有階梯都是 500 的倍數）
+            if (anchor === 'D' && out.D.total < anchorTotal - 1e-6)
+                throw new Error('底價保護失敗');
+            return {
+                core,
+                plans: out
+            };
+        }
+
+        // 非 A～D 的付款方式，逐年取整
+        function schedule(mode, {total, base, n, unit, first, rate}) {
+            if (mode === 'compound')
+                return compound(base, rate, n).map(v => roundTo(v, unit));
+            if (mode === 'fixed')
+                return Array(n).fill(roundTo(total / (12 * n), unit));
+            if (mode === 'deferred') {
+                if (n === 1)
+                    return [roundTo(total / 12, unit)];
+                const head = Math.round(first);
+                return [head, ...Array(n - 1).fill(roundTo((total / 12 - head) / (n - 1), unit))];
+            }
+            throw new Error('unknown mode ' + mode);
+        }
+
+        return {
+            SHAPES,
+            DISCOUNT7,
+            KEYS,
+            discount,
+            roundTo,
+            ceilTo,
+            compound,
+            compoundTotal,
+            impliedRateMonthly,
+            solveRate,
+            targetTotal,
+            presetPlans,
+            schedule,
+            totalOf
+        };
+    })();
+    window.RentCalc = RentCalc;
+
+    // ===== 介面層 =====
+    const $ = id => document.getElementById(id);
+    const f = n => Math.round(n).toLocaleString('zh-TW');
+    const signed = n => (n >= 0 ? '+' : '−') + f(Math.abs(n)) + ' 元';
+    const pct = r => (Math.abs(r) < 5e-4 ? 0 : r).toFixed(3) + '%';
+    const MODE_LABEL = {
+        compound: '逐年複利',
+        fixed: '全期固定月租',
+        deferred: '首年優惠、後續等額'
+    };
+    const SOURCE_UI = {
+        rate: {
+            label: '年調整率（%）',
+            step: '0.1',
+            mode: 'decimal'
+        },
+        avg: {
+            label: '平均月租（元）',
+            step: '100',
+            mode: 'numeric'
+        },
+        total: {
+            label: '合約總額（元）',
+            step: '1000',
+            mode: 'numeric'
+        },
+    };
+
+    const state = {
+        source: 'rate',
+        pinnedTotal: null,
+        preset: 'A',
+        modified: false,
+        custom: [],
+        origin: '',
+        lastRows: [],
+        lastTotal: 0,
+        summary: ''
+    };
+
+    const readNum = id => {
+        const raw = $(id).value.trim();
+        return raw === '' ? NaN : Number(raw);
+    };
+    const planLabel = (mode, key) => (mode === 'preset' ? `議價方案 ${key}` : MODE_LABEL[mode]);
+
+    function readInputs() {
+        const errors = [];
+        const base = readNum('base'),
+            n = Number($('years').value),
+            unit = Number($('roundUnit').value);
+        const source = $('targetSource').value,
+            value = readNum('targetValue');
+        if (!(base > 0))
+            errors.push('請輸入大於 0 的目前月租。');
+        if (!(Number.isInteger(n) && n >= 1 && n <= 7))
+            errors.push('請選擇 1～7 年的租期。');
+        if (!Number.isFinite(value))
+            errors.push(`請輸入${SOURCE_UI[source].label.replace(/（.*/, '')}。`);
+        else if (source === 'rate' && !(value > -100 && value <= 100))
+            errors.push('年調整率須介於 −100% 與 100% 之間。');
+        else if (source !== 'rate' && !(value > 0))
+            errors.push(`${SOURCE_UI[source].label.replace(/（.*/, '')}須大於 0。`);
+        return {
+            base,
+            n,
+            unit,
+            source,
+            value,
+            errors
+        };
+    }
+
+    function anchorTotalOf(inp) {
+        if (state.pinnedTotal != null)
+            return state.pinnedTotal;
+        return RentCalc.targetTotal(inp.source, inp.value, inp.base, inp.n);
+    }
+
+    function renderDerived(inp, T) {
+        const box = $('targetDerived');
+        if (inp.errors.length) {
+            box.textContent = '—';
+            return;
+        }
+        const r = inp.source === 'rate' && state.pinnedTotal == null ? inp.value : RentCalc.solveRate(inp.base, T, inp.n);
+        const item = (key, text) => (key === inp.source ? `<b>${text}（輸入）</b>` : text);
+        box.innerHTML = [
+        item('rate', `年調整率 ${r == null ? '—' : pct(r)}`),
+        item('avg', `平均月租 ${f(T / (12 * inp.n))} 元`),
+        item('total', `合約總額 ${f(T)} 元`),
+        ].join('｜');
+    }
+
+    function renderPresetButtons(plans, n, mode) {
+        for (const key of RentCalc.KEYS) {
+            const btn = $(key === 'D' ? 'brother' : 'brother' + key);
+            const p = plans?.plans[key];
+            btn.disabled = !p;
+            btn.dataset.total = p ? String(p.total) : '';
+            btn.setAttribute('aria-pressed', String(mode === 'preset' && state.preset === key && !!p));
+            btn.innerHTML = p
+            ? `<b>方案 ${key}</b><span class="avg">${f(p.total / (12 * n))} 元／月</span><small>總額 ${f(p.total)} 元</small>`
+            : `<b>方案 ${key}</b><small>4 年以上租期適用</small>`;
+        }
+    }
+
+    function renderSteps(values) {
+        const box = $('steps');
+        let inputs = [...box.querySelectorAll('input')];
+        if (inputs.length !== values.length) {
+            box.innerHTML = values.map((_, i) => `<div class="step"><label>第 ${i + 1} 年月租（元）<input type="number" min="0" step="100" inputmode="numeric" data-i="${i}"></label></div>`).join('');
+            inputs = [...box.querySelectorAll('input')];
+            inputs.forEach(e => e.addEventListener('input', onStepInput));
+        }
+        if (!state.modified)
+            inputs.forEach((e, i) => {
+                e.value = values[i] == null ? '' : String(values[i]);
+            });
+    }
+
+    function onStepInput(e) {
+        const i = Number(e.target.dataset.i);
+        if (!state.modified) {
+            state.custom = [...$('steps').querySelectorAll('input')].map(x => Number(x.value));
+            state.origin = planLabel($('mode').value, state.preset);
+            state.modified = true;
+        }
+        state.custom[i] = e.target.value.trim() === '' ? NaN : Number(e.target.value);
+        update();
+    }
+
+    function clearResults(message) {
+        for (const id of ['total', 'average', 'actualRate', 'difference', 'discountTarget', 'discountActual'])
+            $(id).textContent = '—';
+        $('rows').innerHTML = `<tr><td colspan="4">${message}</td></tr>`;
+        state.lastRows = [];
+        state.summary = '';
+    }
+
+    function update() {
+        const inp = readInputs();
+        const mode = $('mode').value;
+        $('firstWrap').hidden = mode !== 'deferred';
+        $('anchorWrap').hidden = mode !== 'preset';
+        $('presetWrap').hidden = mode !== 'preset';
+        $('discountStats').hidden = mode !== 'preset';
+        const warn = [],
+            block = [...inp.errors];
+
+        const T = inp.errors.length ? NaN : anchorTotalOf(inp);
+        renderDerived(inp, T);
+        const anchor = $('anchor').value,
+            n = inp.n;
+        const plans = !inp.errors.length && n >= 4 ? RentCalc.presetPlans(T, n, anchor, inp.unit) : null;
+        renderPresetButtons(plans, n, mode);
+
+        // 計算目前付款方式的各年月租
+        let planned = null,
+            planTarget = T;
+        if (!block.length) {
+            if (mode === 'preset') {
+                if (!plans)
+                    block.push('議價方案 A～D 適用 4 年以上租期，請延長租期或改選其他付款方式。');
+                else {
+                    planned = plans.plans[state.preset].monthly;
+                    planTarget = plans.plans[state.preset].target;
+                }
+            } else {
+                const first = readNum('first');
+                if (mode === 'deferred' && n > 1 && !(first >= 0))
+                    block.push('請輸入首年月租。');
+                else {
+                    const rate = inp.source === 'rate' && state.pinnedTotal == null ? inp.value : RentCalc.solveRate(inp.base, T, n);
+                    planned = RentCalc.schedule(mode, {
+                        total: T,
+                        base: inp.base,
+                        n,
+                        unit: inp.unit,
+                        first,
+                        rate
+                    });
+                }
+            }
+        }
+        if (state.modified && state.custom.length !== n)
+            state.modified = false;
+        const monthly = state.modified ? state.custom : planned;
+
+        // 狀態列
+        const label = state.modified ? state.origin : planLabel(mode, state.preset);
+        $('planStatus').textContent = state.modified ? `${label}（已修改）` : label;
+        $('planStatus').classList.toggle('modified', state.modified);
+        $('restore').hidden = !state.modified;
+        $('restore').textContent = `還原${label.replace('議價方案 ', '方案 ')}`;
+
+        if (monthly) {
+            const empty = monthly.map((m, i) => (Number.isFinite(m) ? 0 : i + 1)).filter(Boolean);
+            const negative = monthly.map((m, i) => (m < 0 ? i + 1 : 0)).filter(Boolean);
+            if (empty.length)
+                block.push(`請輸入第 ${empty.join('、')} 年月租。`);
+            if (negative.length)
+                block.push(`第 ${negative.join('、')} 年月租算出負數，目標過低，無法套用。`);
+        }
+        renderSteps(planned ?? Array(n).fill(null));
+
+        if (block.length || !monthly) {
+            $('warnings').innerHTML = block.map(t => `<p class="block">${t}</p>`).join('');
+            $('targetInfo').textContent = '';
+            clearResults('請先修正上方標示的輸入。');
+            return;
+        }
+
+        // 提醒（不阻擋）
+        const r0 = inp.source === 'rate' && state.pinnedTotal == null ? inp.value : RentCalc.solveRate(inp.base, T, n);
+        if (r0 != null && r0 < 0)
+            warn.push('目標年調整率為負數，代表新約租金整體低於現行月租。');
+        const below = monthly.map((m, i) => (m < inp.base ? i + 1 : 0)).filter(Boolean);
+        if (below.length && !(r0 < 0))
+            warn.push(`第 ${below.join('、')} 年月租低於現行月租 ${f(inp.base)} 元。`);
+        if (mode === 'deferred' && !state.modified && n > 1 && monthly[0] > monthly[1])
+            warn.push('首年月租高於後續年度，已不是首年優惠，請確認。');
+        if (monthly.some(m => m === 0))
+            warn.push('有年度月租為 0 元。');
+        if (mode === 'preset') {
+            const same = [['A', 'B'], ['C', 'D']].filter(([x, y]) => plans.plans[x].total === plans.plans[y].total).map(([x, y]) => `${x} 與 ${y}`);
+            if (same.length)
+                warn.push(`以 ${f(inp.unit)} 元取整後，方案 ${same.join('、')} 的月租完全相同，讓價被取整抵銷；建議改用 100 元。`);
+        }
+        $('warnings').innerHTML = warn.map(t => `<p class="info">${t}</p>`).join('');
+
+        const total = RentCalc.totalOf(monthly);
+        const diff = total - planTarget;
+        state.lastTotal = total;
+        state.lastRows = monthly.map((m, i) => ({
+            year: i + 1,
+            monthly: m,
+            annual: m * 12
+        }));
+        $('total').textContent = f(total) + ' 元';
+        $('average').textContent = f(total / (12 * n)) + ' 元';
+        const ar = RentCalc.solveRate(inp.base, total, n);
+        $('actualRate').textContent = ar == null ? '—' : pct(ar);
+        $('difference').textContent = signed(diff);
+        $('difference').classList.toggle('neg', diff < 0 && mode === 'preset' && anchor === 'D');
+        $('differenceLabel').textContent = mode === 'preset' ? `與方案 ${state.preset} 目標差額` : '與目標差額';
+
+        const srcText = {
+            rate: `年調整率 ${inp.value}%`,
+            avg: `平均月租 ${f(inp.value)} 元`,
+            total: `合約總額 ${f(inp.value)} 元`
+        }[inp.source];
+        if (mode === 'preset') {
+            $('targetInfo').textContent = `目標：${anchor === 'D' ? '底價（方案 D）' : '開價（方案 A）'}，${srcText}，總額 ${f(T)} 元。方案 ${state.preset} 目標總額 ${f(planTarget)} 元。`;
+            $('discountTarget').textContent = f(RentCalc.discount(state.preset, n)) + ' 元';
+            $('discountActual').textContent = f(plans.plans.A.total - total) + ' 元';
+        } else {
+            $('targetInfo').textContent = `目標：${srcText}，合約總額 ${f(T)} 元。`;
+        }
+
+        $('rows').innerHTML = state.lastRows.map(x => `<tr><td>第 ${x.year} 年</td><td>${f(x.monthly)}</td><td>${f(x.annual)}</td><td>${((x.monthly / inp.base - 1) * 100).toFixed(2)}%</td></tr>`).join('');
+        state.summary = `租金方案：${state.modified ? label + '（已修改）' : label}｜${n} 年｜總額 ${f(total)} 元｜平均月租 ${f(total / (12 * n))} 元\n`
+        + state.lastRows.map(x => `第 ${x.year} 年：月租 ${f(x.monthly)} 元，全年 ${f(x.annual)} 元`).join('\n');
+    }
+
+    // 切換輸入方式時保留目前的經濟價值
+    function onSourceChange() {
+        const prev = state.source,
+            next = $('targetSource').value;
+        $('targetSource').value = prev;
+        const inp = readInputs();
+        const T = inp.errors.length ? null : anchorTotalOf(inp);
+        $('targetSource').value = next;
+        state.source = next;
+        const ui = SOURCE_UI[next];
+        $('targetValueLabel').textContent = ui.label;
+        $('targetValue').step = ui.step;
+        $('targetValue').inputMode = ui.mode;
+        if (T != null) {
+            const v = next === 'rate' ? Number(RentCalc.solveRate(inp.base, T, inp.n).toFixed(3))
+            : next === 'avg' ? Math.round((T / (12 * inp.n)) * 100) / 100 : Math.round(T);
+            $('targetValue').value = String(v);
+            state.pinnedTotal = T;
+        }
+        update();
+    }
+
+    // ===== ⑥ 房客報價、⑦ 租期比較（與 V1 相同） =====
+    const val = id => Number($(id).value) || 0;
+    function evaluateOffer() {
+        const base = val('base'),
+            offer = val('offer'),
+            body = $('offerRows'),
+            hint = $('offerHint');
+        if (base <= 0 || offer <= 0) {
+            body.innerHTML = '<tr><td colspan="4">請輸入大於 0 元的目前月租及房客報價。</td></tr>';
+            hint.textContent = '';
+            return;
+        }
+        hint.textContent = `房客固定月租 ${f(offer)} 元；相較目前月租 ${offer >= base ? '+' : ''}${f(offer - base)} 元（${((offer / base - 1) * 100).toFixed(2)}%）。下表為不同租期的等值年調整率。`;
+        body.innerHTML = Array.from({
+            length: 7
+        }, (_, i) => {
+            const n = i + 1,
+                r = RentCalc.impliedRateMonthly(base, offer, n),
+                min = n <= 3 ? 1.5 : 2,
+                max = n <= 3 ? 2.5 : 3,
+                status = r < min - 1e-7 ? '低於內部參考下緣' : r > max + 1e-7 ? '高於開價基準' : '落在內部參考範圍';
+            return `<tr${n === val('years') ? ' style="background:#eaf3ff;font-weight:700"' : ''}><td>${n} 年${n === val('years') ? '（目前選擇）' : ''}</td><td>${f(offer * 12 * n)} 元</td><td>${pct(r)}</td><td>${status}</td></tr>`;
+        }).join('');
+    }
+    function compare() {
+        const b = val('base'),
+            rates = [0, 1, 2, 2.5, 3, 4, 5];
+        const data = Array.from({
+            length: 7
+        }, (_, i) => {
+            const n = i + 1;
+            return {
+                n,
+                totals: rates.map(r => RentCalc.compoundTotal(b, r, n))
+            };
+        });
+        $('comparison').innerHTML = data.map(({n, totals}) => `<tr><td>${n} 年</td>${totals.map(t => `<td>${f(t / (n * 12))}</td>`).join('')}</tr>`).join('');
+        $('comparisonTotal').innerHTML = data.map(({n, totals}) => `<tr><td>${n} 年</td>${totals.map(t => `<td>${f(t)}</td>`).join('')}</tr>`).join('');
+    }
+
+    // ===== 事件 =====
+    const unpinAndUpdate = () => {
+        state.pinnedTotal = null;
+        update();
+    };
+    $('base').addEventListener('input', () => {
+        state.pinnedTotal = null;
+        update();
+        compare();
+        evaluateOffer();
+    });
+    $('years').addEventListener('change', () => {
+        state.pinnedTotal = null;
+        state.modified = false;
+        update();
+        evaluateOffer();
+    });
+    $('targetSource').addEventListener('change', onSourceChange);
+    $('targetValue').addEventListener('input', unpinAndUpdate);
+    ['roundUnit', 'anchor'].forEach(id => $(id).addEventListener('change', update));
+    $('first').addEventListener('input', update);
+    $('mode').addEventListener('change', () => {
+        state.modified = false;
+        update();
+    });
+    document.querySelectorAll('.plan').forEach(btn => btn.addEventListener('click', () => {
+        if (btn.disabled)
+            return;
+        state.preset = btn.dataset.key;
+        state.modified = false;
+        $('mode').value = 'preset';
+        update();
+    }));
+    $('restore').addEventListener('click', () => {
