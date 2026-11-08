@@ -174,6 +174,16 @@
     .step input {
         margin-top:5px
     }
+    .step .rent-value {
+        margin-top:5px;
+        padding:12px 10px;
+        border:1px solid #e0e6ee;
+        background:#f5f7fa;
+        border-radius:9px;
+        font-size:17px;
+        font-weight:700;
+        color:#192435;
+    }
 
     footer {
         font-size: 12px;
@@ -403,13 +413,13 @@
         </section>
 
         <section class="panel">
-            <h2>⑤ 各年月租</h2>
+            <h2>⑤ 各年月租明細</h2>
             <div class="statusbar">
                 <span id="planStatus" class="pill"></span>
                 <button type="button" class="secondary" id="restore" hidden>還原</button>
             </div>
             <div id="steps"></div>
-            <p class="muted">可直接修改任一年度；修改後其他年度不會自動調整，差額顯示在下方。</p>
+            <p class="muted">以下為目前付款方案自動計算的各年月租，僅供檢視。若要調整金額，請修改上方租金目標或付款方式。</p>
         </section>
 
         <section class="panel">
@@ -774,29 +784,11 @@
         }
     }
 
+    // 各年月租僅展示；保留計算層，暫不開放逐年手動編輯。
     function renderSteps(values) {
-        const box = $('steps');
-        let inputs = [...box.querySelectorAll('input')];
-        if (inputs.length !== values.length) {
-            box.innerHTML = values.map((_, i) => `<div class="step"><label>第 ${i + 1} 年月租（元）<input type="number" min="0" step="100" inputmode="numeric" data-i="${i}"></label></div>`).join('');
-            inputs = [...box.querySelectorAll('input')];
-            inputs.forEach(e => e.addEventListener('input', onStepInput));
-        }
-        if (!state.modified)
-            inputs.forEach((e, i) => {
-                e.value = values[i] == null ? '' : String(values[i]);
-            });
-    }
-
-    function onStepInput(e) {
-        const i = Number(e.target.dataset.i);
-        if (!state.modified) {
-            state.custom = [...$('steps').querySelectorAll('input')].map(x => Number(x.value));
-            state.origin = planLabel($('mode').value, state.preset);
-            state.modified = true;
-        }
-        state.custom[i] = e.target.value.trim() === '' ? NaN : Number(e.target.value);
-        update();
+        $('steps').innerHTML = values.map((v, i) =>
+            `<div class="step"><label>第 ${i + 1} 年月租（元）</label><div class="rent-value">${Number.isFinite(v) ? f(v) + ' 元' : '—'}</div></div>`
+        ).join('');
     }
 
     function clearResults(message) {
@@ -855,13 +847,13 @@
         }
         if (state.modified && state.custom.length !== n)
             state.modified = false;
-        const monthly = state.modified ? state.custom : planned;
+        const monthly = planned;
 
         // 狀態列
         const label = state.modified ? state.origin : planLabel(mode, state.preset);
         $('planStatus').textContent = state.modified ? `${label}（已修改）` : label;
         $('planStatus').classList.toggle('modified', state.modified);
-        $('restore').hidden = !state.modified;
+        $('restore').hidden = true;
         $('restore').textContent = `還原${label.replace('議價方案 ', '方案 ')}`;
 
         if (monthly) {
