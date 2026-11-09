@@ -417,10 +417,10 @@
             <h2>⑤ 各年月租明細</h2>
             <div class="statusbar">
                 <span id="planStatus" class="pill"></span>
-                <button type="button" class="secondary" id="restore" hidden>還原</button>
+                <button type="button" class="secondary" id="editSchedule">調整分段</button><button type="button" class="secondary" id="restore" hidden>還原</button>
             </div>
             <div id="steps"></div>
-            <p class="muted">以下為目前付款方案自動計算的各年月租，僅供檢視。若要調整金額，請修改上方租金目標或付款方式。</p>
+            <p class="muted">可調整前面年度的月租，最後一年自動補足差額，維持原合約總額。</p>
         </section>
 
         <section class="panel">
@@ -692,6 +692,8 @@
         pinnedTotal: null,
         preset: 'A',
         modified: false,
+        editing: false,
+        lockedTotal: null,
         custom: [],
         origin: '',
         lastRows: [],
@@ -785,11 +787,13 @@
         }
     }
 
-    // 各年月租僅展示；保留計算層，暫不開放逐年手動編輯。
     function renderSteps(values) {
-        $('steps').innerHTML = values.map((v, i) =>
-            `<div class="step"><label>第 ${i + 1} 年月租（元）</label><div class="rent-value">${Number.isFinite(v) ? f(v) + ' 元' : '—'}</div></div>`
-        ).join('');
+        $('steps').innerHTML = values.map((v,i) => {
+            const title = '第 '+(i+1)+' 年月租（元）';
+            if (state.editing && i < values.length-1)
+                return '<div class="step"><label>'+title+'</label><input data-year="'+i+'" type="number" min="0" step="1" value="'+v+'"></div>';
+            return '<div class="step"><label>'+title+(state.editing && i===values.length-1?'（自動平衡）':'')+'</label><div class="rent-value">'+(Number.isFinite(v)?f(v)+' 元':'—')+'</div></div>';
+        }).join('');
     }
 
     function clearResults(message) {
@@ -848,13 +852,20 @@
         }
         if (state.modified && state.custom.length !== n)
             state.modified = false;
-        const monthly = planned;
+        const monthly = state.editing && state.custom.length === n ? state.custom.slice() : planned;
+        if (state.editing && monthly && state.lockedTotal != null) {
+            monthly[n-1] = state.lockedTotal / 12 - monthly.slice(0,n-1).reduce((a,b)=>a+b,0);
+            state.custom = monthly.slice();
+            if (!Number.isSafeInteger(monthly[n-1]) || monthly[n-1] < 0)
+                block.push('前面年度月租過高，最後一年無法補足總額。');
+        }
 
         // 狀態列
         const label = state.modified ? state.origin : planLabel(mode, state.preset);
         $('planStatus').textContent = state.modified ? `${label}（已修改）` : label;
         $('planStatus').classList.toggle('modified', state.modified);
-        $('restore').hidden = true;
+        $('restore').hidden = !state.editing;
+        $('editSchedule').textContent = state.editing ? '結束調整' : '調整分段';
         $('restore').textContent = `還原${label.replace('議價方案 ', '方案 ')}`;
 
         if (monthly) {
@@ -865,7 +876,7 @@
             if (negative.length)
                 block.push(`第 ${negative.join('、')} 年月租算出負數，目標過低，無法套用。`);
         }
-        renderSteps(planned ?? Array(n).fill(null));
+        renderSteps(monthly ?? Array(n).fill(null));
 
         if (block.length || !monthly) {
             $('warnings').innerHTML = block.map(t => `<p class="block">${t}</p>`).join('');
@@ -893,7 +904,7 @@
         $('warnings').innerHTML = warn.map(t => `<p class="info">${t}</p>`).join('');
 
         const total = RentCalc.totalOf(monthly);
-        const diff = total - planTarget;
+        const diff = total - (state.editing ? state.lockedTotal : planTarget);
         state.lastTotal = total;
         state.lastRows = monthly.map((m, i) => ({
             year: i + 1,
@@ -906,7 +917,7 @@
         $('actualRate').textContent = ar == null ? '—' : pct(ar);
         $('difference').textContent = signed(diff);
         $('difference').classList.toggle('neg', diff < 0 && mode === 'preset' && anchor === 'D');
-        $('differenceLabel').textContent = mode === 'preset' ? `與方案 ${state.preset} 目標差額` : '與目標差額';
+        $('differenceLabel').textContent = state.editing ? '與鎖定總額差額' : (mode === 'preset' ? `與方案 ${state.preset} 目標差額` : '與目標差額');
 
         const srcText = {
             rate: `年調整率 ${inp.value}%`,
@@ -928,6 +939,7 @@
 
     // 切換輸入方式時保留目前的經濟價值
     function onSourceChange() {
+        resetSchedule();
         const prev = state.source,
             next = $('targetSource').value;
         $('targetSource').value = prev;
@@ -988,18 +1000,49 @@
         $('comparisonTotal').innerHTML = data.map(({n, totals}) => `<tr><td>${n} 年</td>${totals.map(t => `<td>${f(t)}</td>`).join('')}</tr>`).join('');
     }
 
+    function resetSchedule() {
+        state.editing=false; state.modified=false; state.lockedTotal=null; state.custom=[];
+    }
+    $('editSchedule').addEventListener('click',()=>{
+        if(state.editing) state.editing=false;
+        else {
+            if(!state.lastRows.length) return;
+            state.editing=true; state.modified=true;
+            state.origin=planLabel($('mode').value,state.preset);
+            state.lockedTotal=state.lastTotal;
+            state.custom=state.lastRows.map(x=>x.monthly);
+        }
+        update();
+    });
+    $('steps').addEventListener('change',e=>{
+        const field=e.target.closest('input[data-year]');
+        if(!field || !state.editing) return;
+        const v=Number(field.value),i=Number(field.dataset.year);
+        if(field.value.trim()==='' || !Number.isSafeInteger(v) || v<0) {
+            alert('請輸入非負整數月租。'); update(); return;
+        }
+        const next=state.custom.slice(); next[i]=v;
+        const tail=state.lockedTotal/12-next.slice(0,-1).reduce((a,b)=>a+b,0);
+        if(!Number.isSafeInteger(tail) || tail<0) {
+            alert('此金額會使最後一年月租為負數，請重新輸入。'); update(); return;
+        }
+        next[next.length-1]=tail; state.custom=next; update();
+    });
     // ===== 事件 =====
     const unpinAndUpdate = () => {
+        resetSchedule();
         state.pinnedTotal = null;
         update();
     };
     $('base').addEventListener('input', () => {
+        resetSchedule();
         state.pinnedTotal = null;
         update();
         compare();
         evaluateOffer();
     });
     $('years').addEventListener('change', () => {
+        resetSchedule();
         state.pinnedTotal = null;
         state.modified = false;
         update();
@@ -1007,22 +1050,22 @@
     });
     $('targetSource').addEventListener('change', onSourceChange);
     $('targetValue').addEventListener('input', unpinAndUpdate);
-    ['roundUnit', 'anchor'].forEach(id => $(id).addEventListener('change', update));
-    $('first').addEventListener('input', update);
+    ['roundUnit', 'anchor'].forEach(id => $(id).addEventListener('change', () => { resetSchedule(); update(); }));
+    $('first').addEventListener('input', () => { resetSchedule(); update(); });
     $('mode').addEventListener('change', () => {
-        state.modified = false;
+        resetSchedule();
         update();
     });
     document.querySelectorAll('.plan').forEach(btn => btn.addEventListener('click', () => {
         if (btn.disabled)
             return;
         state.preset = btn.dataset.key;
-        state.modified = false;
+        resetSchedule();
         $('mode').value = 'preset';
         update();
     }));
     $('restore').addEventListener('click', () => {
-        state.modified = false;
+        resetSchedule();
         update();
     });
     $('copy').addEventListener('click', async () => {
@@ -1042,7 +1085,7 @@
         const previousYears = Number($('years').value);
         $('years').value = String(n);
         $('mode').value = n >= 4 ? 'preset' : 'fixed';
-        state.modified = false;
+        resetSchedule();
         state.pinnedTotal = null;
         // 跨租期時保留平均月租，不保留原租期的合約總額。
         const inp = readInputs();
